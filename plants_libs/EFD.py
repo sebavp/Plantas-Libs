@@ -8,8 +8,11 @@ from cv2 import imread, cvtColor, threshold, findContours, COLOR_BGR2GRAY, RETR_
 from cv import CreateImageHeader, SetData, GetMat, IPL_DEPTH_8U, CV_CHAIN_APPROX_NONE
 from numpy import asarray
 
+from timeit import timeit
+
 
 class EFD(object):
+    @timeit
     def __init__(self, image, ndescriptors, scale):
         self.image = CreateImageHeader(image.size, IPL_DEPTH_8U, 3)
         SetData(self.image, image.tostring())
@@ -17,6 +20,7 @@ class EFD(object):
         self.scale = scale
         self.m = 2*ndescriptors
 
+    @timeit
     def get_curve(self):
         im = asarray(GetMat(self.image))
         im = cvtColor(im, COLOR_BGR2GRAY)
@@ -47,7 +51,7 @@ class EFD(object):
 
        
 
-    
+    @timeit
     def fourier_coefficients(self):
         xy = self.get_curve()
         x = [c[0] for c in xy]

@@ -3,6 +3,8 @@ from sys import argv
 
 from PIL import Image
 
+from timeit import timeit
+
 class Threshold(object):
     def __init__(self, image):
         self.image = Image.open(image)
@@ -10,6 +12,7 @@ class Threshold(object):
     def __del__(self):
         del self.image
 
+    @timeit
     def process(self):
         pixels = self.image.load()
         for x in range(self.image.size[0]):
