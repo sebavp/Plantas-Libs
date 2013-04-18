@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*
-from math import floor, pi, cos, sin, sqrt, pow
+from math import pi, cos, sin, sqrt, pow
 from sys import argv
 
-from PIL.ImageFilter import CONTOUR, SHARPEN, EDGE_ENHANCE, SMOOTH
 from PIL import Image, ImageDraw
-from cv2 import imread, cvtColor, threshold, findContours, COLOR_BGR2GRAY, RETR_TREE
+from cv2 import cvtColor, findContours, COLOR_BGR2GRAY, RETR_TREE
 from cv import CreateImageHeader, SetData, GetMat, IPL_DEPTH_8U, CV_CHAIN_APPROX_NONE
 from numpy import asarray
 
@@ -27,11 +26,15 @@ class EFD(object):
         # ret, im = threshold(im, 127,255, 0)
         contours, hierarchy = findContours(im, RETR_TREE, CV_CHAIN_APPROX_NONE)
 
-        
+        max_cont = 0
+        for i in range(len(contours))[1:]:
+            if len(contours[i]) > len(contours[max_cont]):
+                max_cont = i
+        print max_cont
             
         xy=[]
         # for xys in contours:
-        for pos in contours[0]:
+        for pos in contours[max_cont]:
             xy.append(tuple([int(coord) for coord in pos[0]]))
         
         xy_ = []
@@ -40,7 +43,6 @@ class EFD(object):
             xy_.append(xy[i*step])
         # # Debugging
         # im_ = Image.new('RGB', (4000,3000), (255,255,255))
-        # pixs = im_.load()
         # draw = ImageDraw.Draw(im_)
         # for pos in range(len(xy_)):
         #     draw.line((xy_[pos-1][0],xy_[pos-1][1]+600,xy_[pos][0],xy_[pos][1]+600), fill=128)
@@ -60,11 +62,17 @@ class EFD(object):
         t = 2*pi/self.m
         two_over_m = 2.0/self.m
         
-        ax = [two_over_m*sum([x[i]*cos((k+1)*t*i) for i in range(self.m)]) for k in range(self.ndescriptors)]
-        bx = [two_over_m*sum([x[i]*sin((k+1)*t*i) for i in range(self.m)]) for k in range(self.ndescriptors)]
-        ay = [two_over_m*sum([y[i]*cos((k+1)*t*i) for i in range(self.m)]) for k in range(self.ndescriptors)]
-        by = [two_over_m*sum([y[i]*sin((k+1)*t*i) for i in range(self.m)]) for k in range(self.ndescriptors)]
-        coeffs = [sqrt((pow(ax[k],2) + pow(ay[k],2))/(pow(ax[0],2)+pow(ay[0],2))) + sqrt((pow(bx[k],2) + pow(by[k],2))/(pow(bx[0],2)+pow(by[0],2))) for k in range(self.ndescriptors)[:-1]]
+        ax = [two_over_m*sum([x[i]*cos((k+1)*t*i) for i in range(self.m)])\
+                    for k in range(self.ndescriptors)]
+        bx = [two_over_m*sum([x[i]*sin((k+1)*t*i) for i in range(self.m)])\
+                    for k in range(self.ndescriptors)]
+        ay = [two_over_m*sum([y[i]*cos((k+1)*t*i) for i in range(self.m)])\
+                    for k in range(self.ndescriptors)]
+        by = [two_over_m*sum([y[i]*sin((k+1)*t*i) for i in range(self.m)])\
+                    for k in range(self.ndescriptors)]
+        coeffs = [sqrt((pow(ax[k],2) + pow(ay[k],2))/(pow(ax[0],2)+pow(ay[0],2)))\
+                + sqrt((pow(bx[k],2) + pow(by[k],2))/(pow(bx[0],2)+pow(by[0],2)))\
+                    for k in range(self.ndescriptors)[:-1]]
         self.coeffs = coeffs
         return coeffs, ax, ay, bx, by
 
@@ -72,9 +80,9 @@ class EFD(object):
     def reconstruct(self):
         coeffs, ax, ay, bx, by = self.fourier_coefficients()
         x = y = [0]*1000
-        t = 2*pi/self.m
-        x = [ax[0]/2.0 + sum([ax[k]*cos((k+1)*t*i) + bx[k]*sin((k+1)*t*i) for k in range(self.ndescriptors)]) for i in range(1000)]
-        y = [ay[0]/2.0 + sum([ay[k]*cos((k+1)*t*i) + by[k]*sin((k+1)*t*i) for k in range(self.ndescriptors)]) for i in range(1000)]
+        t = 2.0*pi/float(self.m)
+        x = [ax[0]/2.0 + sum([ax[k]*cos(float((k+1)*t*i)) + bx[k]*sin(float((k+1)*t*i)) for k in range(self.ndescriptors)]) for i in range(1000)]
+        y = [ay[0]/2.0 + sum([ay[k]*cos(float((k+1)*t*i)) + by[k]*sin(float((k+1)*t*i)) for k in range(self.ndescriptors)]) for i in range(1000)]
         # for i in range(self.m):
         #     x[i] = ax[0]/2.0
         #     y[i] = ay[0]/2.0
@@ -85,7 +93,6 @@ class EFD(object):
         #         y[i] += ay[k]*cos(p) + by[k]*sin(p)
         im = Image.new('RGB',(1500,1500),(255,255,255))
         draw = ImageDraw.Draw(im)
-        pixels = im.load()
         for i in range(1000)[1:]:
             xi = x[i] + 650
             yi = y[i] + 750
@@ -95,6 +102,6 @@ class EFD(object):
 if __name__ == '__main__':
     # im = imread(argv[1])
     from plants_libs.threshold import Threshold
-    efd = EFD(Threshold(argv[1]).process(), 300, 1)
+    efd = EFD(Threshold(argv[1]).process(), 50, 1)
     # efd.fourier_coefficients()
     efd.reconstruct()
